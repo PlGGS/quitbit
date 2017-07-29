@@ -1,4 +1,4 @@
-// Copyright (c) 2016, Joel Longanecker
+﻿// Copyright (c) 2016, Joel Longanecker
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification, 
@@ -387,6 +387,7 @@ namespace QuitBit
                 runProgram.StartInfo.Arguments = paramsString;
                 runProgram.StartInfo.WorkingDirectory = System.IO.Path.GetDirectoryName(execString);
                 runProgram.Start();
+                BringToFront(execString);
             }
 
             while (true)
@@ -419,5 +420,31 @@ namespace QuitBit
                 System.Threading.Thread.Sleep(35);
             }
         }
+
+        /// <summary>
+        /// Bring's specified emulator to front
+        /// </summary>
+        /// <param name="title"></param>
+        public static void BringToFront(string title)
+        {
+            // Get a handle to the Calculator application.
+            IntPtr handle = FindWindow(null, title);
+
+            // Verify that Calculator is a running process.
+            if (handle == IntPtr.Zero)
+            {
+                return;
+            }
+
+            // Make Calculator the foreground application
+            SetForegroundWindow(handle);
+        }
+
+        [DllImport("USER32.DLL", CharSet = CharSet.Unicode)]
+        public static extern IntPtr FindWindow(String lpClassName, String lpWindowName);
+
+        [DllImport("USER32.DLL")]
+        public static extern bool SetForegroundWindow(IntPtr hWnd);
+
     }
 }
