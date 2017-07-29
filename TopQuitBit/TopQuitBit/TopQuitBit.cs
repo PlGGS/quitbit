@@ -21,7 +21,7 @@
 // 2015
 //
 // Usage:
-//		qb.exe --controller=2 --buttons=2+0+1 --exec=c:\emulators\nes\nes.exe --params=c:\roms\nes\mario.nes
+//		qb.exe --controller=2 --buttons=2+0+1 --load=c:\emulators\nes\nes.exe --params=c:\roms\nes\mario.nes
 //
 
 // Example emulation station usage:
@@ -30,7 +30,7 @@
 //		<fullname>Sega Genesis</fullname>
 //		<path>C:\Roms\genesis</path>
 //		<extension>.bin .zip</extension>
-//		<command>qb.exe --buttons=6 --e=c:\retroarch\retroarch.exe --p=-D -L C:\retroarch\cores\genesis_plus_gx_libretro.dll "%ROM_RAW%"</command>
+//		<command>qb.exe --buttons=6 --l=c:\retroarch\retroarch.exe --p=-D -L C:\retroarch\cores\genesis_plus_gx_libretro.dll "%ROM_RAW%"</command>
 //		<platform>genesis</platform>
 //		<theme>genesis</theme>
 // </system>
@@ -283,7 +283,7 @@ namespace QuitBit
                 string
                     controllerString = "-1",
                     buttonsString = "",
-                    execString = "",
+                    loadString = "",
                     paramsString = "",
                     timeString = "0",
 
@@ -301,8 +301,8 @@ namespace QuitBit
 
                         if (lSide == "buttons" || lSide == "b")
                             buttonsString = rSide;
-                        else if (lSide == "exec" || lSide == "e")
-                            execString = rSide;
+                        else if (lSide == "load" || lSide == "l")
+                            loadString = rSide;
                         else if (lSide == "params" || lSide == "p")
                             paramsString = rSide;
                         else if (lSide == "time" || lSide == "t")
@@ -339,9 +339,9 @@ namespace QuitBit
                             break;
                         }
                     }
-                    if (!System.IO.File.Exists(execString))
+                    if (!System.IO.File.Exists(loadString))
                     {
-                        if (execString == string.Empty)
+                        if (loadString == string.Empty)
                             Console.WriteLine("An executable is not specififed.");
                         else
                             Console.WriteLine("The executable does not exist, it's possibly an invalid path.");
@@ -365,7 +365,7 @@ namespace QuitBit
                         Console.WriteLine("--rr               Restore Resolution if your emulator is not respecting the desktop" + Environment.NewLine +
                                           "--buttons    --b   Button combination to close the program" + Environment.NewLine +
                                           "                       --b=0+8+6" + Environment.NewLine +
-                                          "--exec       --e   Full path to the executable" + Environment.NewLine +
+                                          "--load       --e   Full path to the executable to load" + Environment.NewLine +
                                           "                       --e=C:\\Emulators\\nestopia.exe" + Environment.NewLine +
                                           "--controller --c   ID of specific controller to use           [Optional]" + Environment.NewLine +
                                           "                       --c=0" + Environment.NewLine +
@@ -383,11 +383,11 @@ namespace QuitBit
                 controller = new Controller(controllerNum, buttonCombo); //Controller class that handles button presses when checked
 
                 runProgram = new System.Diagnostics.Process(); //Start up the program
-                runProgram.StartInfo.FileName = execString;
+                runProgram.StartInfo.FileName = loadString;
                 runProgram.StartInfo.Arguments = paramsString;
-                runProgram.StartInfo.WorkingDirectory = System.IO.Path.GetDirectoryName(execString);
+                runProgram.StartInfo.WorkingDirectory = System.IO.Path.GetDirectoryName(loadString);
                 runProgram.Start();
-                BringToFront(execString);
+                BringToFront(loadString);
             }
 
             while (true)
