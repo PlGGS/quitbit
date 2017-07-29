@@ -18,10 +18,11 @@ A long standing problem with setting up a mouse and keyboard free emulation syst
 
 ##Getting this software
 
-* Download this File- [QuitBit.cs](https://raw.githubusercontent.com/longjoel/quitbit/master/QuitBit.cs)
+* Download this File- [TopQuitBit.cs](https://github.com/PlGGS/quitbit/edit/master/TopQuitBit.cs)
 * Open up cmd.exe
 * Navigate to the folder where you downloaded QuitBit.cs
 * Execute the Following- C:\Windows\Microsoft.Net\Framework\v4.0.30319\csc.exe /out:QB.exe QuitBit.cs
+**Note that this does not work with v4.0 of the .NET framework, and that you must now compile with the latest version for C# 6!**
 
 ##Features
 
@@ -34,19 +35,19 @@ A long standing problem with setting up a mouse and keyboard free emulation syst
 Command     |Short Command|Purpose                                  |Example 
 ------------|-------------|-----------------------------------------|-------
 --buttons   |--b          |Button combination to close the program  |--b=0+8+6
---exec      |--e          |Full path to the executable              |--e=C:\Emulators\nes.exe
+--load      |--l          |Full path to the executable to load      |--e=C:\Emulators\nes.exe
 --controller|--c          |ID of specific controller to use         |--c=0
 --time      |--t          |Milliseconds to hold down the combination|--t=2500
 --params    |--p          |Parameters when launching the program    |--p=C:\roms\NES\Zelda.nes
 --rr        |--rr         |Restore Resolution                       |
 
---exec and --buttons are the only arguments that are required. If --controller is not used, it will check every controller plugged into the system.
+--load and --buttons are the only arguments that are required. If --controller is not used, it will check every controller plugged into the system.
 
 
 * Standalone Usage Example
 ```
-qb.exe --buttons=1+2+4 --exec=c:\emulators\dolphin\dolphin.exe --t=2000
-qb.exe --c=2 --b=2+0+1 --exec=C:\Emulator Programs\NES\nestopia.exe --params=C:\Roms\Nintendo\Metroid.nes
+TopQuitBit.exe --buttons=1+2+4 --load=c:\emulators\dolphin\dolphin.exe --t=2000
+TopQuitBit.exe --c=2 --b=2+0+1 --load=C:\Emulator Programs\NES\nestopia.exe --params=C:\Roms\Nintendo\Metroid.nes
 ```
 
 * EmulationStation Usage Example
@@ -58,7 +59,7 @@ qb.exe --c=2 --b=2+0+1 --exec=C:\Emulator Programs\NES\nestopia.exe --params=C:\
          <fullname>Sega Genesis</fullname>
          <path>C:\Roms\genesis</path>
          <extension>.bin .zip</extension>
-         <command>qb.exe --buttons=6 --exec=c:\retroarch\retroarch.exe --params=-D -L C:\retroarch\cores\genesis_plus_gx_libretro.dll "%ROM_RAW%"</command>
+         <command>TopQuitBit.exe --buttons=6 --load=c:\retroarch\retroarch.exe --params=-D -L C:\retroarch\cores\genesis_plus_gx_libretro.dll "%ROM_RAW%"</command>
          <platform>genesis</platform>
          <theme>genesis</theme>
     </system>
