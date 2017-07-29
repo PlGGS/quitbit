@@ -3,10 +3,12 @@
 * Owner- Joel Longanecker
 
 * Essential Contributor- [MiRIr](https://github.com/MiRIr)
+* Non-essential Contributor- [PlGGS](https://github.com/PlGGS)
 
-2016
+2017
 
 ##Changelog:
+2017-07-28 - Created actual C# project to compile C# 6 code. Added BringToFront feature to help prevent emulators from running in the background.
 2016-02-16 - Added restore resolution flag. Some emulators do not play nice with big picture mode, and this is an attempt to fix this.
 
 ##About QuitBit
