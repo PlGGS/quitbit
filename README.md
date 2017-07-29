@@ -3,7 +3,7 @@
 * Owner- Joel Longanecker
 
 * Essential Contributor- [MiRIr](https://github.com/MiRIr)
-* Non-essential Contributor- Blake Boris [https://github.com/PlGGS]
+* Non-essential Contributor- [PlGGS](https://github.com/PlGGS)
 
 2017
 
