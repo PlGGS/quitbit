@@ -20,8 +20,12 @@
 // Emulator Killer written by Joel Longanecker
 // 2015
 //
+//TopQuitBit
+//Updated by Blake Boris for personal use
+//2017
+//
 // Usage:
-//		qb.exe --controller=2 --buttons=2+0+1 --load=c:\emulators\nes\nes.exe --params=c:\roms\nes\mario.nes
+//		TopQuitBit.exe --controller=2 --buttons=2+0+1 --load=c:\emulators\nes\nes.exe --params=c:\roms\nes\mario.nes
 //
 
 // Example emulation station usage:
@@ -30,13 +34,14 @@
 //		<fullname>Sega Genesis</fullname>
 //		<path>C:\Roms\genesis</path>
 //		<extension>.bin .zip</extension>
-//		<command>qb.exe --buttons=6 --l=c:\retroarch\retroarch.exe --p=-D -L C:\retroarch\cores\genesis_plus_gx_libretro.dll "%ROM_RAW%"</command>
+//		<command>TopQuitBit.exe --buttons=6 --l=c:\retroarch\retroarch.exe --p=-D -L C:\retroarch\cores\genesis_plus_gx_libretro.dll "%ROM_RAW%"</command>
 //		<platform>genesis</platform>
 //		<theme>genesis</theme>
 // </system>
 //
 // Note: --controller and --params are not necessary
 
+using Gma.System.MouseKeyHook;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -181,13 +186,29 @@ namespace QuitBit
         }
 
         [DllImport("user32.dll")]
-        static extern int EnumDisplaySettings(
-         string deviceName, int modeNum, ref DEVMODE devMode);
-
+        static extern int EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE devMode);
         [DllImport("user32.dll")]
-        static extern int ChangeDisplaySettings(
-              ref DEVMODE devMode, int flags);
+        static extern int ChangeDisplaySettings(ref DEVMODE devMode, int flags);
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
+        [DllImport("user32.dll")]
+        public static extern int SetForegroundWindow(IntPtr hwnd);
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool ShowWindow(IntPtr hWnd, ShowWindowEnum flags);
 
+        private enum ShowWindowEnum
+        {
+            Hide = 0,
+            ShowNormal = 1, ShowMinimized = 2, ShowMaximized = 3,
+            Maximize = 3, ShowNormalNoActivate = 4, Show = 5,
+            Minimize = 6, ShowMinNoActivate = 7, ShowNoActivate = 8,
+            Restore = 9, ShowDefault = 10, ForceMinimized = 11
+        };
+
+        private IKeyboardMouseEvents m_GlobalHook;
         const int ENUM_CURRENT_SETTINGS = -1;
         const int CDS_UPDATEREGISTRY = 0x01;
         const int CDS_TEST = 0x02;
