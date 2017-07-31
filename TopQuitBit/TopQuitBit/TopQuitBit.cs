@@ -44,7 +44,9 @@
 using Gma.System.MouseKeyHook;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Windows.Forms;
 
 namespace QuitBit
 {
@@ -289,127 +291,204 @@ namespace QuitBit
         }
     }
 
-    internal sealed class Program
+    internal sealed class Keyboard
+    {
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
+        [DllImport("user32.dll")]
+        public static extern int SetForegroundWindow(IntPtr hwnd);
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool ShowWindow(IntPtr hWnd, ShowWindowEnum flags);
+        private enum ShowWindowEnum
+        {
+            Hide = 0,
+            ShowNormal = 1, ShowMinimized = 2, ShowMaximized = 3,
+            Maximize = 3, ShowNormalNoActivate = 4, Show = 5,
+            Minimize = 6, ShowMinNoActivate = 7, ShowNoActivate = 8,
+            Restore = 9, ShowDefault = 10, ForceMinimized = 11
+        };
+        private IKeyboardMouseEvents m_GlobalHook;
+
+        public Process emu { get; set; }
+        public WindowManager windowManager { get; set; }
+
+        /// <summary>
+        /// Subscribes to MouseKeyHook global events
+        /// </summary>
+        public void Subscribe()
+        {
+            // Note: for the application hook, use the Hook.AppEvents() instead
+            m_GlobalHook = Hook.GlobalEvents();
+            m_GlobalHook.KeyUp += GlobalHookKeyUp;
+        }
+
+        /// <summary>
+        /// Unsubscribes from MouseKeyHook events
+        /// </summary>
+        public void Unsubscribe()
+        {
+            m_GlobalHook.KeyUp -= GlobalHookKeyUp;
+            m_GlobalHook.Dispose();
+        }
+
+        /// <summary>
+        /// Detects KeyUp events while outside of application
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void GlobalHookKeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.LWin || e.KeyCode == Keys.RWin)
+            {
+                KillProcess(windowManager, emu);
+            }
+        }
+
+        internal void KillProcess(WindowManager winMngr, Process proc)
+        {
+            try
+            {
+                if (winMngr != null)
+                {
+                    winMngr.Dispose();
+                    winMngr = null;
+                }
+
+            }
+            catch { }
+            try
+            {
+                proc.Kill();
+            }
+            catch { }
+            return;
+        }
+    }
+
+    internal sealed class TopQuitBit
     {
         [STAThread]
         private static void Main()
         {
+            Keyboard keys = new Keyboard();
             Controller controller;
             WindowManager windowManager = null;
-            System.Diagnostics.Process runProgram;
-            System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
+            Process runProgram;
+            Stopwatch timer = new Stopwatch();
             int time;
+            string
+                controllerString = "-1",
+                buttonsString = "",
+                loadString = "",
+                paramsString = "",
+                timeString = "0",
+
+                clString = Environment.CommandLine;
+
+            string[] stringElements = clString.Split(new string[] { "--" }, StringSplitOptions.RemoveEmptyEntries);
+            int buttonCombo = 0, controllerNum = -1;
+
+            foreach (var s in stringElements)
+            {
+                if (s.Contains("="))
+                {
+                    var lSide = s.Split('=')[0];
+                    var rSide = s.Split('=')[1];
+
+                    if (lSide == "buttons" || lSide == "b")
+                        buttonsString = rSide;
+                    else if (lSide == "load" || lSide == "l")
+                        loadString = rSide;
+                    else if (lSide == "params" || lSide == "p")
+                        paramsString = rSide;
+                    else if (lSide == "time" || lSide == "t")
+                        timeString = rSide;
+                    else if (lSide == "contoller" || lSide == "c")
+                        controllerString = rSide;
+                }
+                else
+                {
+                    if (s == "rr")
+                    {
+                        windowManager = new WindowManager();
+
+                    }
+                }
+            }
 
             {
-                string
-                    controllerString = "-1",
-                    buttonsString = "",
-                    loadString = "",
-                    paramsString = "",
-                    timeString = "0",
+                bool error = false;
+                int oVal = 0;
 
-                    clString = Environment.CommandLine;
-
-                string[] stringElements = clString.Split(new string[] { "--" }, StringSplitOptions.RemoveEmptyEntries);
-                int buttonCombo = 0, controllerNum = -1;
-
-                foreach (var s in stringElements)
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                foreach (var b in buttonsString.Split('+')) //Find Button Combo that is required
                 {
-                    if (s.Contains("="))
-                    {
-                        var lSide = s.Split('=')[0];
-                        var rSide = s.Split('=')[1];
-
-                        if (lSide == "buttons" || lSide == "b")
-                            buttonsString = rSide;
-                        else if (lSide == "load" || lSide == "l")
-                            loadString = rSide;
-                        else if (lSide == "params" || lSide == "p")
-                            paramsString = rSide;
-                        else if (lSide == "time" || lSide == "t")
-                            timeString = rSide;
-                        else if (lSide == "contoller" || lSide == "c")
-                            controllerString = rSide;
-                    }
+                    if (int.TryParse(b, out oVal))
+                        buttonCombo += (int)Math.Pow(2, oVal);
                     else
                     {
-                        if (s == "rr")
-                        {
-                            windowManager = new WindowManager();
-
-                        }
+                        if (buttonsString == string.Empty)
+                            Console.WriteLine("A button combination is not specififed.");
+                        else
+                            Console.WriteLine("The button argument is not used properly.");
+                        error = true;
+                        break;
                     }
                 }
-
+                if (!System.IO.File.Exists(loadString))
                 {
-                    bool error = false;
-                    int oVal = 0;
-
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    foreach (var b in buttonsString.Split('+')) //Find Button Combo that is required
-                    {
-                        if (int.TryParse(b, out oVal))
-                            buttonCombo += (int)Math.Pow(2, oVal);
-                        else
-                        {
-                            if (buttonsString == string.Empty)
-                                Console.WriteLine("A button combination is not specififed.");
-                            else
-                                Console.WriteLine("The button argument is not used properly.");
-                            error = true;
-                            break;
-                        }
-                    }
-                    if (!System.IO.File.Exists(loadString))
-                    {
-                        if (loadString == string.Empty)
-                            Console.WriteLine("An executable is not specififed.");
-                        else
-                            Console.WriteLine("The executable does not exist, it's possibly an invalid path.");
-                        error = true;
-                    }
-                    if (!int.TryParse(timeString, out time))
-                    {
-                        Console.WriteLine("The time argument not used properly.");
-                        error = true;
-                    }
-                    if (!int.TryParse(controllerString, out controllerNum))
-                    {
-                        Console.WriteLine("The controller argument not used properly.");
-                        error = true;
-                    }
-                    if (error)
-                    {
-                        Console.ForegroundColor = ConsoleColor.Green;
-                        Console.WriteLine("Command      Alt   Purpose");
-                        Console.ForegroundColor = ConsoleColor.White;
-                        Console.WriteLine("--rr               Restore Resolution if your emulator is not respecting the desktop" + Environment.NewLine +
-                                          "--buttons    --b   Button combination to close the program" + Environment.NewLine +
-                                          "                       --b=0+8+6" + Environment.NewLine +
-                                          "--load       --e   Full path to the executable to load" + Environment.NewLine +
-                                          "                       --e=C:\\Emulators\\nestopia.exe" + Environment.NewLine +
-                                          "--controller --c   ID of specific controller to use           [Optional]" + Environment.NewLine +
-                                          "                       --c=0" + Environment.NewLine +
-                                          "--time       --t   Milliseconds to hold down the combination  [Optional]" + Environment.NewLine +
-                                          "                       --t=2500" + Environment.NewLine +
-                                          "--params     --p   Parameters when launching the program      [Optional]" + Environment.NewLine +
-                                          "                       --p=C:\\roms\\NES\\Super Mario Bros..nes");
-                        Console.ForegroundColor = ConsoleColor.Gray;
-                        return;
-                    }
+                    if (loadString == string.Empty)
+                        Console.WriteLine("An executable is not specififed.");
                     else
-                        Console.ForegroundColor = ConsoleColor.Gray;
+                        Console.WriteLine("The executable does not exist, it's possibly an invalid path.");
+                    error = true;
                 }
-
-                controller = new Controller(controllerNum, buttonCombo); //Controller class that handles button presses when checked
-
-                runProgram = new System.Diagnostics.Process(); //Start up the program
-                runProgram.StartInfo.FileName = loadString;
-                runProgram.StartInfo.Arguments = paramsString;
-                runProgram.StartInfo.WorkingDirectory = System.IO.Path.GetDirectoryName(loadString);
-                runProgram.Start();
-                BringToFront(loadString);
+                if (!int.TryParse(timeString, out time))
+                {
+                    Console.WriteLine("The time argument not used properly.");
+                    error = true;
+                }
+                if (!int.TryParse(controllerString, out controllerNum))
+                {
+                    Console.WriteLine("The controller argument not used properly.");
+                    error = true;
+                }
+                if (error)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("Command      Alt   Purpose");
+                    Console.ForegroundColor = ConsoleColor.White;
+                    Console.WriteLine("--rr               Restore Resolution if your emulator is not respecting the desktop" + Environment.NewLine +
+                                      "--buttons    --b   Button combination to close the program" + Environment.NewLine +
+                                      "                       --b=0+8+6" + Environment.NewLine +
+                                      "--load       --e   Full path to the executable to load" + Environment.NewLine +
+                                      "                       --e=C:\\Emulators\\nestopia.exe" + Environment.NewLine +
+                                      "--controller --c   ID of specific controller to use           [Optional]" + Environment.NewLine +
+                                      "                       --c=0" + Environment.NewLine +
+                                      "--time       --t   Milliseconds to hold down the combination  [Optional]" + Environment.NewLine +
+                                      "                       --t=2500" + Environment.NewLine +
+                                      "--params     --p   Parameters when launching the program      [Optional]" + Environment.NewLine +
+                                      "                       --p=C:\\roms\\NES\\Super Mario Bros..nes");
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    return;
+                }
+                else
+                    Console.ForegroundColor = ConsoleColor.Gray;
             }
+
+            controller = new Controller(controllerNum, buttonCombo); //Controller class that handles button presses when checked
+
+            runProgram = new Process(); //Start up the program
+            runProgram.StartInfo.FileName = loadString;
+            runProgram.StartInfo.Arguments = paramsString;
+            runProgram.StartInfo.WorkingDirectory = System.IO.Path.GetDirectoryName(loadString);
+            runProgram.Start();
+            BringToFront(loadString);
+            keys.emu = runProgram;
+            keys.windowManager = windowManager;
 
             while (true)
             {
@@ -419,23 +498,7 @@ namespace QuitBit
                 }
                 else if (timer.ElapsedMilliseconds >= time)
                 {
-                    try
-                    {
-                        if (windowManager != null)
-                        {
-                            windowManager.Dispose();
-                            windowManager = null;
-                        }
-
-                    }
-                    catch { }
-                    try
-                    {
-
-                        runProgram.Kill();
-                    }
-                    catch { }
-                    return;
+                    keys.KillProcess(windowManager, runProgram);
                 }
 
                 System.Threading.Thread.Sleep(35);
