@@ -357,13 +357,14 @@ namespace QuitBit
                     winMngr = null;
                 }
 
-            }
-            catch { }
-            try
-            {
                 proc.Kill();
+                MessageBox.Show("TopQuitBit", "Tried to quit process! Did it work?");
             }
-            catch { }
+            catch
+            {
+                MessageBox.Show("TopQuitBit", "Failed to quit process!");
+            }
+
             return;
         }
     }
